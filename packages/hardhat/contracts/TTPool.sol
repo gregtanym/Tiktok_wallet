@@ -4,19 +4,35 @@ pragma solidity ^0.8.9;
 
 // buyers pay to TTWalletManager
 contract TTWalletManager {
+
+	uint256 public MINT_PRICE = 0.05 ether;
+	uint256 public TOTAL_ETH_SUPPLY = 0;
+
+	uint256 public rate;  // Number of tokens per ETH. For example, if 1 ETH = 100 tokens, then rate = 100.
+
 	address owner;
 	IERC20 private TTT;
 	mapping(string => uint) idToBalance;
 	mapping(string => address) idToAddress;
 
-	constructor(IERC20 token) {
+	constructor(IERC20 token, uint256 _rate) {
 		owner = msg.sender;
 		TTT = token;
+		rate = _rate;
 	}
+
+	modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
 
 	event Registered(string tiktokId, address userAddress);
 
 	// event BuyerDeposited(string sellerTiktokId, string buyerTiktokId);
+
+	function setRate(uint256 _rate) external onlyOwner {
+        rate = _rate;
+    }
 
 	function register(string memory tiktokId, address userAddress) external {
 		require(msg.sender == owner);
@@ -40,6 +56,13 @@ contract TTWalletManager {
 	function getBalance() external view returns (uint) {
 		return address(this).balance;
 	}
+
+	function deposit() external payable {
+        require(msg.value > 0, "Must send ETH");
+
+        uint256 tokensToMint = msg.value * rate;
+        require(TTT.transferFrom(owner, msg.sender, tokensToMint), "Token transfer failed");
+    }
 
 	// function getSellers() external view returns (TTWallet[] memory) {
 	// 	return sellers;
