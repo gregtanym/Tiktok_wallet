@@ -5,12 +5,13 @@ pragma solidity ^0.8.9;
 // buyers pay to TTWalletManager
 contract TTWalletManager {
 	address owner;
-
+	IERC20 private TTT;
 	mapping(string => uint) idToBalance;
 	mapping(string => address) idToAddress;
 
-	constructor() {
+	constructor(IERC20 token) {
 		owner = msg.sender;
+		TTT = token;
 	}
 
 	event Registered(string tiktokId, address userAddress);
@@ -19,17 +20,21 @@ contract TTWalletManager {
 
 	function register(string memory tiktokId, address userAddress) external {
 		require(msg.sender == owner);
-		idToBalance[tiktokId] = userAddress;
-		emit SellerRegistered(tiktokId, sellerAddress);
+		idToAddress[tiktokId] = userAddress;
+		idToBalance[tiktokId] = 0;
+		emit Registered(tiktokId, userAddress);
 	}
 
-	function buyerDeposit(
-		string memory sellerTiktokId,
-		string memory buyerTiktokId
+	function pay(
+		string memory sender,
+		string memory recipient,
+		uint amt
 	) external payable {
-		userToWallet[buyerTiktokId] = msg.sender;
-		payable(userToWallet[sellerTiktokId]).transfer(msg.value);
-		emit BuyerDeposited(sellerTiktokId, buyerTiktokId);
+		uint senderBal = idToBalance[sender];
+		require(senderBal >= amt, "Sender needs more TTT");
+		address senderAdd = idToAddress[sender];
+		address recipientAdd = idToAddress[recipient];
+		TTT.transferFrom(senderAdd, recipientAdd, amt);
 	}
 
 	function getBalance() external view returns (uint) {
@@ -40,9 +45,7 @@ contract TTWalletManager {
 	// 	return sellers;
 	// }
 
-	function getUserBalance(
-		string memory ttId
-	) external view returns (address) {
+	function getUserBalance(string memory ttId) external view returns (uint) {
 		return idToBalance[ttId];
 	}
 }
