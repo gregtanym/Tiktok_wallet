@@ -15,6 +15,7 @@ contract TTWalletManager {
 	}
 
 	event Registered(string tiktokId, address userAddress);
+	event Paid(string sender, string recipient, uint amt);
 
 	// event BuyerDeposited(string sellerTiktokId, string buyerTiktokId);
 
@@ -31,10 +32,15 @@ contract TTWalletManager {
 		uint amt
 	) external payable {
 		uint senderBal = idToBalance[sender];
+		require(idToAddress[sender] != address(0));
+		require(idToAddress[recipient] != address(0));
 		require(senderBal >= amt, "Sender needs more TTT");
 		address senderAdd = idToAddress[sender];
 		address recipientAdd = idToAddress[recipient];
+		idToBalance[sender] -= amt;
+		idToBalance[recipient] += amt;
 		TTT.transferFrom(senderAdd, recipientAdd, amt);
+		emit Paid(sender, recipient, amt);
 	}
 
 	function getBalance() external view returns (uint) {
